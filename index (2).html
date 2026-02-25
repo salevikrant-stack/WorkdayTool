@@ -1,0 +1,1988 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Combined Tool - Workday Timesheet & Bangalore Overtime & Holiday Report</title>
+  <style>
+    :root {
+      --color-primary: #3C638D;
+      --color-success: #38761D;
+      --color-dark-bg: #1C1C1C;
+      --color-card: #282828;
+      --color-text-light: #E0E0E0;
+      --color-border: rgba(255, 255, 255, 0.1);
+    }
+
+    body {
+      margin: auto;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow-x: hidden;
+      overflow-y: auto;
+      background: linear-gradient(315deg, rgba(101, 0, 94, 1) 3%, rgba(60, 132, 206, 1) 38%, rgba(48, 238, 226, 1) 68%, rgba(255, 25, 25, 1) 98%);
+      animation: gradient 15s ease infinite;
+      background-size: 400% 400%;
+      background-attachment: fixed;
+      color: var(--color-text-light);
+      position: relative;
+      min-height: 100vh;
+      /* Disable right-click for the whole body */
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    @keyframes gradient {
+      0% {
+        background-position: 0% 0%;
+      }
+
+      50% {
+        background-position: 100% 100%;
+      }
+
+      100% {
+        background-position: 0% 0%;
+      }
+    }
+
+    .wave {
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 1000% 1000% 0 0;
+      position: fixed;
+      width: 200%;
+      height: 12em;
+      animation: wave 10s linear infinite;
+      transform: translate3d(0, 0, 0);
+      opacity: 0.8;
+      bottom: 0;
+      left: 0;
+      z-index: -1;
+    }
+
+    .wave:nth-of-type(2) {
+      bottom: -1.25em;
+      animation: wave 18s linear reverse infinite;
+      opacity: 0.8;
+    }
+
+    .wave:nth-of-type(3) {
+      bottom: -2.5em;
+      animation: wave 20s linear reverse infinite;
+      opacity: 0.9;
+    }
+
+    .app-container {
+      max-width: 1300px;
+      margin: 30px auto;
+      padding: 20px;
+      background: rgba(40, 40, 40, 0.85);
+      border-radius: 15px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
+      text-align: center;
+      position: relative;
+      z-index: 0;
+    }
+
+    header {
+      margin-bottom: 30px;
+      color: var(--color-text-light);
+      font-size: 2.8em;
+      font-weight: 780;
+      letter-spacing: 1px;
+    }
+
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      /* Added for responsiveness */
+    }
+
+    .tab-btn {
+      padding: 15px 40px;
+      cursor: pointer;
+      border-radius: 8px;
+      background: rgba(40, 75, 115, 0.75);
+      color: white;
+      font-weight: 600;
+      font-size: 1.2em;
+      transition: background-color 0.3s ease;
+      user-select: none;
+      border: 1px solid transparent;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+    }
+
+    .tab-btn:hover {
+      background-color: var(--color-primary);
+      border-color: #3C638D;
+    }
+
+    .tab-btn.active {
+      background-color: var(--color-primary);
+      border-color: #3C638D;
+      box-shadow: 0 0 15px var(--color-primary);
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.5s ease-out;
+      margin-top: 20px;
+      text-align: left;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .tabs.timesheet-sub-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 15px;
+      margin-top: 10px;
+      flex-wrap: nowrap;
+    }
+
+    .tabs.timesheet-sub-tabs .tab-btn {
+      background: #466078;
+      min-width: 155px;
+      padding: 7px 10px;
+      border-radius: 9px;
+      font-size: 1em;
+      box-shadow: none;
+      border: none;
+      font-weight: 600;
+      margin: 0;
+      white-space: normal;
+      height: 37px;
+      line-height: 1.15;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .tabs.timesheet-sub-tabs .tab-btn.active {
+      background: #365C77;
+      color: #fff;
+      box-shadow: 0 0 8px rgba(60, 99, 141, 0.18);
+    }
+
+    .tabs.timesheet-sub-tabs .tab-btn:hover {
+      background: #2B3B4C;
+      color: #fff;
+    }
+
+    @media (max-width: 1000px) {
+      .tabs.timesheet-sub-tabs {
+        gap: 6px;
+      }
+
+      .tabs.timesheet-sub-tabs .tab-btn {
+        min-width: 90px;
+        font-size: 0.9em;
+        height: 32px;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .tabs.timesheet-sub-tabs {
+        flex-wrap: wrap;
+      }
+
+      .tabs.timesheet-sub-tabs .tab-btn {
+        min-width: 100px;
+        margin-bottom: 6px;
+        height: 32px;
+      }
+    }
+
+    .file-action-group {
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .file-action-group input[type="file"] {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #3C638D;
+      font-size: 14px;
+      cursor: pointer;
+      outline-offset: 2px;
+      transition: border-color 0.3s ease;
+      background: var(--color-dark-bg);
+      color: var(--color-text-light);
+      min-width: 160px;
+    }
+
+    .file-action-group input[type="file"]:focus {
+      border-color: var(--color-success);
+    }
+
+    .file-action-group button {
+      background-color: var(--color-success);
+      border: none;
+      color: white;
+      padding: 12px 30px;
+      font-size: 16px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.15s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      min-width: 130px;
+    }
+
+    .file-action-group button:disabled {
+      background-color: #4E952E99;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .file-action-group button:hover:not(:disabled) {
+      background-color: #4E952E;
+      transform: translateY(-2px);
+    }
+
+    .section-card {
+      background: var(--color-card);
+      border-radius: 15px;
+      padding: 20px 25px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), inset 0 0 5px rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--color-border);
+      margin-bottom: 20px;
+      color: var(--color-text-light);
+    }
+
+    .input-label {
+      font-size: 1.1em;
+      font-weight: 500;
+      margin-bottom: 18px;
+      display: block;
+    }
+
+    /* Common table styles */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      color: var(--color-text-light);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    th,
+    td {
+      border: 1px solid #444;
+      padding: 10px 12px;
+    }
+
+    th {
+      background-color: var(--color-primary);
+      color: white;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      text-transform: none;
+    }
+
+    tr:nth-child(even) {
+      background-color: #222;
+    }
+
+    tr:hover {
+      background-color: #333;
+    }
+
+    tr.grand-total-row {
+      background-color: #A38B00 !important;
+      font-weight: bold;
+      color: black;
+    }
+
+    /* Bangalore table row color classes */
+    .low {
+      background-color: #9EF0B2 !important;
+      color: #155724 !important;
+    }
+
+    .medium {
+      background-color: #F7F492 !important;
+      color: #856404 !important;
+    }
+
+    .medium-orange {
+      background-color: #ff9800 !important;
+      color: #6e4900 !important;
+    }
+
+    .high {
+      background-color: #ff4c4c !important;
+      color: #450409 !important;
+    }
+
+    .bangalore-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      justify-content: center;
+    }
+
+    .bangalore-tab {
+      padding: 10px 25px;
+      cursor: pointer;
+      border-radius: 7px;
+      background: var(--color-primary);
+      color: white;
+      font-weight: 600;
+      box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
+      user-select: none;
+      transition: background-color 0.3s ease;
+    }
+
+    .bangalore-tab:hover {
+      background-color: #2f4b6f;
+    }
+
+    .bangalore-tab.active {
+      background-color: #1d3453;
+      box-shadow: 0 0 15px var(--color-primary);
+    }
+
+    .bangalore-tab-content {
+      display: none;
+    }
+
+    .bangalore-tab-content.active {
+      display: block;
+    }
+
+    .table-scroll-wrapper {
+      max-height: 350px;
+      overflow: auto;
+      margin-top: 10px;
+    }
+
+    /* Help icon - minimal and non-intrusive */
+    .help-icon {
+      position: fixed;
+      top: 18px;
+      right: 25px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 700;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 34px;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.35);
+      transition: transform 0.18s ease, background 0.18s ease;
+      z-index: 9999;
+    }
+
+    .help-icon:hover {
+      background: rgba(255, 255, 255, 0.3);
+      color: #000;
+      transform: scale(1.06);
+    }
+
+    /* Footer - fixed and centered */
+    footer {
+      text-align: center;
+      color: #ddd;
+      font-size: 14px;
+      margin-top: 30px;
+      padding: 12px 0;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.32);
+      backdrop-filter: blur(4px);
+      z-index: 50;
+      cursor: pointer;
+    }
+
+    /* Holiday Report Specific Styles (Integrated) */
+    .header-title {
+      background-color: #154B69;
+      color: white;
+      font-weight: bold;
+      text-align: center;
+      padding: 10px 0;
+      margin-top: 25px;
+      margin-bottom: 5px;
+      font-size: 1.2em;
+      border-radius: 8px 8px 0 0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .action-required {
+      background-color: #ffc7ce !important;
+      /* light red/pink */
+      color: #9c0006 !important;
+      /* dark red */
+      font-weight: bold;
+    }
+
+    /* Override for Holiday Report tables to match dark theme */
+    #holidayReportContainer table {
+      color: var(--color-text-light);
+      text-align: center;
+    }
+
+    #holidayReportContainer th {
+      background-color: var(--color-primary);
+      color: white;
+    }
+
+    #holidayReportContainer tr:nth-child(even) {
+      background-color: #222;
+    }
+
+    #holidayReportContainer tr:hover {
+      background-color: #333;
+    }
+
+    /* Style for the no-discrepancy message */
+    .no-discrepancy-message {
+      padding: 30px;
+      text-align: center;
+      font-size: 1.4em;
+      color: #ffc7ce;
+      background-color: #5d2b2f;
+      border-radius: 10px;
+      border: 2px solid #9c0006;
+      margin: 20px 0;
+      font-weight: 600;
+    }
+
+    /* Style for the Success message */
+    .success-message {
+      padding: 30px;
+      text-align: center;
+      font-size: 1.4em;
+      color: #9EF0B2;
+      background-color: #1d3453;
+      border-radius: 10px;
+      border: 2px solid #3C638D;
+      margin: 20px 0;
+      font-weight: 600;
+    }
+
+    /* --- NEW MODAL STYLES (For Click) --- */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 10000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.7);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background-color: var(--color-card);
+      margin: auto;
+      padding: 30px;
+      border: 1px solid var(--color-border);
+      width: 90%;
+      max-width: 400px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.6);
+      position: relative;
+      color: var(--color-text-light);
+      animation: zoomIn 0.3s ease-out;
+      text-align: left;
+    }
+
+    @keyframes zoomIn {
+      from {
+        transform: scale(0.9);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .modal-content h3 {
+      margin-top: 0;
+      color: #FFFFFF;
+      border-bottom: 2px solid #FFFFFF;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+      font-size: 1.5em;
+    }
+
+    .modal-content p {
+      margin: 8px 0;
+      font-size: 1.1em;
+    }
+
+    .modal-content a {
+      color: #4CAF50;
+      text-decoration: none;
+    }
+
+    .modal-content a:hover {
+      text-decoration: underline;
+    }
+
+    .close-btn {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+
+    .close-btn:hover,
+    .close-btn:focus {
+      color: #fff;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    /* --- NEW HOVER POPUP STYLES (For Hover) --- */
+    #hoverPopup {
+      display: none;
+      /* Hidden by default */
+      position: fixed;
+      bottom: 45px;
+      /* Positioned just above the footer */
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #2F3D4E;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 0.9em;
+      white-space: nowrap;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+      z-index: 100;
+      animation: fadeInTooltip 0.2s;
+    }
+
+    @keyframes fadeInTooltip {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+    /* --- END NEW HOVER POPUP STYLES --- */
+  </style>
+</head>
+
+<body>
+  <a href="https://bydeluxe.atlassian.net/wiki/spaces/~61a864bcb0b630006a3102d5/pages/19508428802/Workday+Tool+Timesheet_Absences_Unmatched+Report+Generator" class="help-icon" target="_blank"
+    title="Help">?</a>
+
+  <div>
+    <div class="wave"></div>
+    <div class="wave"></div>
+    <div class="wave"></div>
+  </div>
+  <div class="app-container">
+    <header>Workday ChronoMetrics</header>
+    <div class="tabs">
+      <div class="tab-btn" id="workdayMainBtn">Timesheet Report</div>
+      <div class="tab-btn" id="bangaloreMainBtn">Overtime Report</div>
+    </div>
+    <div id="timesheetTab" class="tab-content">
+      <div class="section-card">
+        <label class="input-label">Select up to three Excel files (Workday Timesheet, Unmatched Report, And/Or Overtime Report):</label>
+        <div class="file-action-group">
+          <input type="file" id="workdayFileInput" multiple accept=".xls,.xlsx,.xlsm" />
+          <button class="generate-btn" id="workdayGenerateButton" disabled>Generate Report</button>
+          <button class="download-btn" id="workdayDownloadBtn" disabled>Download Report</button>
+          <button class="reset-btn" id="workdayResetButton" disabled>Reset</button>
+        </div>
+      </div>
+      <div id="workdayReportPreview" class="section-card" style="position:relative; display:none;">
+        <h2>Workday Report Preview</h2>
+        <div id="workdayReportStatus"></div>
+        <div class="tabs timesheet-sub-tabs">
+          <div class="tab-btn active" id="timesheetSubBtn1">Timesheet Summary</div>
+          <div class="tab-btn" id="timesheetSubBtn2">Absence Summary</div>
+          <div class="tab-btn" id="timesheetSubBtn7">Overtime Approval Status</div>
+          <div class="tab-btn" id="timesheetSubBtn3">Regular Shift Summary</div>
+          <div class="tab-btn" id="timesheetSubBtn6">Holiday Report</div>
+          <div class="tab-btn" id="timesheetSubBtn4">Unmatched Summary</div>
+          <div class="tab-btn" id="timesheetSubBtn5">Manager Overview</div>
+        </div>
+        <div id="workdayReportTables">
+          <div id="timesheet" class="tab-content active"></div>
+          <div id="absence" class="tab-content"></div>
+          <div id="overtimeApproval" class="tab-content"></div>
+          <div id="regular" class="tab-content"></div>
+
+          <div id="holidayReport" class="tab-content">
+            <div id="holidayReportContainer" class="section-card" style="display:none; text-align:center;">
+              <div id="holidayReportTables">
+              </div>
+            </div>
+          </div>
+          <div id="unmatched" class="tab-content"></div>
+          <div id="pivot" class="tab-content"></div>
+        </div>
+      </div>
+    </div>
+    <div id="bangaloreTab" class="tab-content">
+      <div class="section-card">
+        <label class="input-label">Select Bangalore Overtime Excel file:</label>
+        <div class="file-action-group">
+          <input type="file" id="bangaloreUpload" accept=".xlsx" />
+          <button id="bangaloreGenerateBtn" disabled>Generate Report</button>
+          <button id="bangaloreDownloadBtn" disabled>Download Report</button>
+          <button id="bangaloreResetBtn" disabled>Reset</button>
+        </div>
+      </div>
+      <div class="bangalore-tab-container" style="display:none;">
+        <div class="bangalore-tabs">
+          <div class="bangalore-tab active" id="bangalore-tab-summary">Summary</div>
+          <div class="bangalore-tab" id="bangalore-tab-details">Details</div>
+        </div>
+        <div id="bangaloreSummaryTab" class="bangalore-tab-content active">
+          <table id="bangaloreSummaryTable" style="width:100%;">
+            <thead>
+              <tr>
+                <th>Employee ID</th>
+                <th>Employee Name</th>
+                <th>Supervisory Organization</th>
+                <th>Total Hours</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="bangaloreDetailsTab" class="bangalore-tab-content">
+          <table id="bangaloreDetailsTable" style="width:100%;">
+            <thead>
+              <tr>
+                <th>Employee ID</th>
+                <th>Employee Name</th>
+                <th>Supervisory Organization</th>
+                <th>Type</th>
+                <th>Total Hours</th>
+                <th>Time Off Date</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="contactModal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn">&times;</span>
+      <h3>Contact Details</h3>
+      <p><strong>Developer:</strong> Vikrant Raju Sale</p>
+      <p><strong>Email:</strong> <a href="mailto:vikrant.sale@bydeluxe.com">vikrant.sale@bydeluxe.com</a></p>
+      <p><strong>Phone:</strong> +91 9740594085</p>
+      <p><strong>LinkedIn:</strong> <a href="https://www.linkedin.com/in/vikrant-raju-sale-a9092698/" target="_blank">https://www.linkedin.com/in/vikrant/</a></p>
+      <p style="margin-top: 20px; font-size: 0.9em; color: #aaa;">For Any Support & Feedback regarding this tool.</p>
+    </div>
+  </div>
+
+  <div id="hoverPopup">View Contact Details</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // --- Global Variables for Holiday Report Data ---
+      let regShiftData = [];
+      let dayOffShiftData = [];
+      let holidayRegPivot = [];
+      let holidayDayOffPivot = [];
+      // NEW: Global variable for the Overtime Approval Report
+      let overtimeApprovalData = [];
+
+
+      // --- HELPER FUNCTIONS FOR ROBUST DATA EXTRACTION AND FORMATTING ---
+
+      /**
+       * Robustly retrieves a column value from a JSON row using flexible keyword matching.
+       * @param {object} row - The JSON object (row data).
+       * @param {string[]} searchTerms - An array of keywords to look for in the column headers.
+       * @returns {any} The value of the first matching column, or undefined.
+       */
+      function robustGetVal(row, searchTerms) {
+          const keys = Object.keys(row).map(k => ({ original: k, lower: k.toLowerCase().trim() }));
+          for (const term of searchTerms) {
+              const keyObj = keys.find(k => k.lower.includes(term));
+              if (keyObj) return row[keyObj.original];
+          }
+          return undefined;
+      }
+      
+      /**
+       * Converts an Excel date (serial number or string) into a standardized DD/MM/YYYY string.
+       * @param {string|number} excelValue - The raw value from the Excel cell.
+       * @returns {string} The formatted date string (DD/MM/YYYY) or the original value if parsing fails.
+       */
+      function formatWorkdayDate(excelValue) {
+          if (!excelValue) return "";
+          let date;
+
+          if (typeof excelValue === "number") {
+              // Excel serial number conversion (Workday uses 1900 date system)
+              // 25569 is the diff between 1900/1/1 and 1970/1/1
+              date = new Date((excelValue - 25569) * 86400 * 1000);
+          } else if (typeof excelValue === "string") {
+              // Attempt to parse string date (works for most ISO/locale strings)
+              date = new Date(excelValue);
+          } else {
+              // Return original value if neither number nor string (e.g., date object from XLSX)
+              if (excelValue instanceof Date) date = excelValue;
+              else return excelValue; 
+          }
+
+          if (date && !isNaN(date.getTime())) {
+              // Use toLocaleDateString for DD/MM/YYYY (en-GB format)
+              return date.toLocaleDateString("en-GB");
+          }
+          return typeof excelValue === 'string' ? excelValue : ""; // Return the original string or empty
+      }
+
+
+      // --- Main Tab Navigation Logic ---
+      function hideAllTabs() {
+        document.getElementById("timesheetTab").style.display = "none";
+        document.getElementById("bangaloreTab").style.display = "none";
+        document.querySelectorAll(".tabs .tab-btn").forEach((btn) => btn.classList.remove("active"));
+      }
+      function showMainTabContent(tabId, buttonEl) {
+        if (buttonEl.classList.contains("active")) return;
+        hideAllTabs();
+        document.getElementById(tabId).style.display = "block";
+        buttonEl.classList.add("active");
+      }
+      const workdayMainBtn = document.getElementById("workdayMainBtn");
+      const bangaloreMainBtn = document.getElementById("bangaloreMainBtn");
+
+      workdayMainBtn.onclick = function () {
+        showMainTabContent("timesheetTab", this);
+      };
+      bangaloreMainBtn.onclick = function () {
+        showMainTabContent("bangaloreTab", this);
+      };
+
+      workdayMainBtn.click(); // Default tab on load
+
+      // --- Workday Timesheet Report Logic ---
+      // Workday Sub-tabs 
+      const workdaySubTabs = ["timesheet", "absence", "overtimeApproval", "regular", "holidayReport", "unmatched", "pivot"];
+      const workdaySubBtns = ["timesheetSubBtn1", "timesheetSubBtn2", "timesheetSubBtn7", "timesheetSubBtn3", "timesheetSubBtn6", "timesheetSubBtn4", "timesheetSubBtn5"];
+
+      workdaySubBtns.forEach((btnId, i) => {
+        document.getElementById(btnId).onclick = function () {
+          workdaySubBtns.forEach((id) => document.getElementById(id).classList.remove("active"));
+          workdaySubTabs.forEach((id) => document.getElementById(id).classList.remove("active"));
+          this.classList.add("active");
+          document.getElementById(workdaySubTabs[i]).classList.add("active");
+        };
+      });
+
+      // Workday Buttons
+      const workdayFileInput = document.getElementById("workdayFileInput");
+      const workdayGenerateButton = document.getElementById("workdayGenerateButton");
+      const workdayResetButton = document.getElementById("workdayResetButton");
+      const workdayDownloadBtn = document.getElementById("workdayDownloadBtn");
+      const holidayReportContainer = document.getElementById('holidayReportContainer');
+
+
+      workdayFileInput.addEventListener("change", function () {
+        // MODIFIED: Allow up to 3 files
+        workdayGenerateButton.disabled = this.files.length === 0 || this.files.length > 3;
+        workdayResetButton.disabled = this.files.length === 0;
+        workdayDownloadBtn.disabled = true;
+      });
+
+      workdayGenerateButton.addEventListener("click", processWorkdayFiles);
+      workdayResetButton.addEventListener("click", resetWorkdayApp);
+      workdayDownloadBtn.addEventListener("click", downloadAllWorkdayReports);
+
+      function resetWorkdayApp() {
+        workdayFileInput.value = "";
+        workdayGenerateButton.disabled = true;
+        workdayResetButton.disabled = true;
+        workdayDownloadBtn.disabled = true;
+        document.getElementById("workdayReportPreview").style.display = "none";
+        document.getElementById("workdayReportStatus").innerText = "";
+        // Reset generated tables - MODIFIED: Added 'overtimeApproval'
+        ["timesheet", "absence", "overtimeApproval", "regular", "unmatched", "pivot"].forEach((id) => (document.getElementById(id).innerHTML = ""));
+        // Reset for holiday report
+        document.getElementById("holidayReportTables").innerHTML = "";
+        holidayReportContainer.style.display = 'none';
+        regShiftData = [];
+        dayOffShiftData = [];
+        holidayRegPivot = [];
+        holidayDayOffPivot = [];
+        overtimeApprovalData = []; // NEW: Reset new data array
+        window._managerOverviewPivotData = null;
+        window._overtimeApprovalPivot = []; // Added for completeness
+      }
+
+      // Helper function to create HTML table
+      function createTable(title, headers, rows) {
+        let html = `<div class="report-card"><h3>${title}</h3><div class="table-scroll-wrapper"><table><thead><tr>`;
+        headers.forEach((h) => (html += `<th>${h}</th>`));
+        html += `</tr></thead><tbody>`;
+        rows.forEach((row) => {
+          const isGrandTotalRow = row[0] && row[0].toString().toLowerCase().includes("grand total");
+          html += `<tr${isGrandTotalRow ? ' class="grand-total-row"' : ""}>`;
+          row.forEach((cell) => (html += `<td>${cell}</td>`));
+          html += `</tr>`;
+        });
+        html += `</tbody></table></div></div>`;
+        return html;
+      }
+
+      async function processWorkdayFiles() {
+        const files = workdayFileInput.files;
+        if (files.length === 0 || files.length > 3) {
+          alert("Please select one, two, or three Excel files.");
+          return;
+        }
+        document.getElementById("workdayReportPreview").style.display = "block";
+        document.getElementById("workdayReportStatus").innerText = "Processing files...";
+
+        // Clear Report data before processing
+        document.getElementById("holidayReportTables").innerHTML = "";
+        document.getElementById("overtimeApproval").innerHTML = ""; 
+        document.getElementById("unmatched").innerHTML = ""; // Clear unmatched
+        holidayReportContainer.style.display = 'none';
+        regShiftData = [];
+        dayOffShiftData = [];
+        holidayRegPivot = [];
+        holidayDayOffPivot = [];
+        overtimeApprovalData = []; 
+        window._overtimeApprovalPivot = []; // Initialize/Clear the new pivot
+
+        let mainReport, unmatchedReport, overtimeReport;
+        
+        // Helper to check for multiple keywords
+        const headerContainsAll = (keywords, aoaHeaders) => keywords.every(k => aoaHeaders.some(h => h.includes(k)));
+
+
+        for (let file of files) {
+          const data = await file.arrayBuffer();
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+          // Get AOA headers to determine report type
+          const aoaHeaders = XLSX.utils.sheet_to_json(sheet, { header: 1 })[0].map((h) => h ? h.toString().toLowerCase().trim() : '');
+          
+          // --- IMPROVED REPORT IDENTIFICATION LOGIC ---
+          // 1. Main Workday Timesheet Report (Requires two unique headers)
+          const isTimesheet = aoaHeaders.some((h) => h.includes("final total hours")) && aoaHeaders.some((h) => h.includes("full name"));
+
+          // 2. Unmatched Report (Requires two unique headers)
+          const isUnmatched = aoaHeaders.some((h) => h.includes("clock event type")) && aoaHeaders.some((h) => h.includes("worker"));
+
+          // 3. Overtime Report (Requires three unique headers)
+          const isOvertime = headerContainsAll(["pending", "approved", "employee"], aoaHeaders);
+
+
+          if (isTimesheet) {
+            // Main Workday Report - Use raw: false, dateNF: 'dd-mm-yyyy' for JSON to handle dates
+            const aoaData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+            const jsonData = XLSX.utils.sheet_to_json(sheet, { raw: false, dateNF: 'dd/mm/yyyy' }); 
+            mainReport = { workbook, sheet, aoaHeaders, aoaData, jsonData }; 
+          } else if (isUnmatched) {
+            // Unmatched Report - Use raw: false, dateNF: 'dd-mm-yyyy' for JSON
+            const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false, dateNF: 'dd/mm/yyyy' });
+            unmatchedReport = { workbook, sheet, headers: aoaHeaders, jsonData };
+          } 
+          else if (isOvertime) {
+            // Overtime Report 
+            const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false, dateNF: 'dd/mm/yyyy' });
+            overtimeReport = { workbook, sheet, headers: aoaHeaders, jsonData };
+          }
+        }
+        // --- END IMPROVED REPORT IDENTIFICATION LOGIC ---
+
+
+        if (!mainReport && !unmatchedReport && !overtimeReport) {
+          alert("No valid Workday reports found.");
+          document.getElementById("workdayReportStatus").innerText =
+            "Error: No valid Workday reports found in the selected files.";
+          document.getElementById("workdayReportPreview").style.display = "none";
+          return;
+        }
+
+        const timesheetDiv = document.getElementById("timesheet"),
+          absenceDiv = document.getElementById("absence"),
+          regularDiv = document.getElementById("regular"),
+          unmatchedDiv = document.getElementById("unmatched"),
+          pivotDiv = document.getElementById("pivot");
+        ["timesheet", "absence", "overtimeApproval", "regular", "unmatched", "pivot"].forEach((div) =>
+          document.getElementById(div).innerHTML = ""
+        );
+
+        let mainRows = [], col = {};
+        function normalizeHeader(header) {
+          return header.toString().toLowerCase().replace(/\s+/g, " ").trim();
+        }
+
+        if (mainReport) {
+          const data = mainReport.aoaData; // Use AOA data for these reports
+          const headerRow = data[0].map((h) => h ? h.toString().trim() : '');
+          mainRows = data.slice(1);
+          
+          // Hardened column index search for Timesheet (using basic includes)
+          [
+            "employee id",
+            "full name",
+            "reported date",
+            "final total hours",
+            "worker's manager",
+            "time type",
+            "status",
+          ].forEach((h) => {
+            col[h] = headerRow.findIndex((x) => x.toLowerCase().includes(h));
+          });
+          
+          // Timesheet, Absence, Regular Shift processing logic... (unchanged, as it uses AOAs which are fragile but simple)
+          const timesheetRows = [];
+          const absenceRows = [];
+          const regularRows = [];
+          let timesheetMgrCount = {};
+          let absenceMgrCount = {};
+          let regularMgrCount = {};
+          const maxColIndex = Math.max(col["worker's manager"], col["final total hours"], col["time type"], col["status"]);
+
+          mainRows.forEach((r) => {
+            if (!r || r.length <= maxColIndex || r.every(c => !c)) return;
+
+            const empID = r[col["employee id"]];
+            const empName = r[col["full name"]];
+            // *** Use formatWorkdayDate for robust date conversion ***
+            const reportDate = formatWorkdayDate(r[col["reported date"]]);
+            const totalHours = parseFloat(r[col["final total hours"]]);
+            const mgr = r[col["worker's manager"]];
+            const type = (r[col["time type"]] || '').toLowerCase();
+            const statusVal = (r[col["status"]] || '').toLowerCase();
+
+            // 1. Timesheet Summary
+            if (!isNaN(totalHours) && (totalHours < 9 || totalHours > 18)) {
+              timesheetRows.push([
+                empID, empName, reportDate, totalHours, mgr,
+                totalHours < 9 ? "Immediate Action Required" : "Recommended Action",
+              ]);
+              const mgrKey = mgr || "No Manager Listed";
+              timesheetMgrCount[mgrKey] = (timesheetMgrCount[mgrKey] || 0) + 1;
+            }
+
+            // 2. Absence Summary
+            if (type !== "regular shift" && statusVal !== "approved") {
+              absenceRows.push([
+                empID, empName, reportDate, r[col["time type"]], r[col["status"]], mgr,
+              ]);
+              const mgrKey = mgr || "No Manager Listed";
+              absenceMgrCount[mgrKey] = (absenceMgrCount[mgrKey] || 0) + 1;
+            }
+
+            // 3. Regular Shift Summary
+            if (type === "regular shift" && statusVal === "not submitted") {
+              regularRows.push([
+                empID, empName, reportDate, r[col["time type"]], "Not Approved", mgr,
+              ]);
+              const mgrKey = mgr || "No Manager Listed";
+              regularMgrCount[mgrKey] = (regularMgrCount[mgrKey] || 0) + 1;
+            }
+          });
+
+          // Build detailed tables and pivots (unchanged)
+          timesheetDiv.innerHTML = createTable(
+            "Workday Timesheet Summary",
+            ["Employee ID", "Employee Name", "Date", "Final Total Hours", "Manager", "Action Required"],
+            timesheetRows
+          );
+          absenceDiv.innerHTML = createTable(
+            "Absence Summary",
+            ["Employee ID", "Employee Name", "Date", "Day Type", "Status", "Manager"],
+            absenceRows
+          );
+          regularDiv.innerHTML = createTable(
+            "Regular Shift Summary",
+            ["Employee ID", "Employee Name", "Date", "Day Type", "Status", "Manager"],
+            regularRows
+          );
+
+          let timesheetPivot = Object.entries(timesheetMgrCount).map(([mgr, cnt]) => [mgr, cnt]);
+          let absencePivot = Object.entries(absenceMgrCount).map(([mgr, cnt]) => [mgr, cnt]);
+          let regPivot = Object.entries(regularMgrCount).map(([mgr, cnt]) => [mgr, cnt]);
+
+          if (timesheetPivot.length > 0) timesheetPivot.push(["Grand Total", timesheetRows.length]);
+          if (absencePivot.length > 0) absencePivot.push(["Grand Total", absenceRows.length]);
+          if (regPivot.length > 0) regPivot.push(["Grand Total", regularRows.length]);
+
+          window._timesheetPivot = timesheetPivot; 
+          window._absencePivot = absencePivot;
+          window._regPivot = regPivot; 
+
+          // --- INTEGRATED HOLIDAY REPORT GENERATION ---
+          if (mainReport.jsonData && mainReport.jsonData.length > 0) {
+            processHolidayData(mainReport.jsonData); 
+            document.getElementById('holidayReportContainer').style.display = 'block'; 
+          }
+        }
+
+
+        // --- OVERTIME APPROVAL REPORT PROCESSING (HARDENED) ---
+        const overtimeDiv = document.getElementById("overtimeApproval");
+        overtimeApprovalData = [];
+        if (overtimeReport && overtimeReport.jsonData.length > 0) {
+          const data = overtimeReport.jsonData;
+
+          // HARDENED Search terms for Overtime Report columns
+          const HOURS_PENDING_TERMS = ['pending hours', 'hours pending', 'pending total', 'total pending', 'pending ot', 'pending'];
+          const HOURS_APPROVED_TERMS = ['approved hours', 'hours approved', 'approved total', 'total approved', 'approved ot', 'approved'];
+          const EMP_ID_TERMS = ['employee id', 'worker id', 'empid', 'id'];
+          const EMP_NAME_TERMS = ['employee name', 'worker', 'name', 'full name', 'workers name'];
+          const DATE_TERMS = ['time off date', 'reported date', 'date', 'period end date', 'date of absence', 'day'];
+          const DAY_TYPE_TERMS = ['type', 'time type', 'time type name', 'ot type', 'time type category'];
+          const MANAGER_TERMS = ['workers manager', 'manager for position', 'manager', 'approver', 'supervisory organization'];
+
+          const parseNumber = (value) => {
+            if (typeof value === 'number') return value;
+            if (typeof value === 'string') {
+              const num = parseFloat(value.trim().replace(/,/g, ''));
+              return isNaN(num) ? 0 : num;
+            }
+            return 0;
+          };
+
+          data.forEach(row => {
+            // *** Use robustGetVal for all fields ***
+            const pendingHoursRaw = robustGetVal(row, HOURS_PENDING_TERMS);
+            const approvedHoursRaw = robustGetVal(row, HOURS_APPROVED_TERMS);
+            const pendingHours = parseNumber(pendingHoursRaw);
+            const approvedHours = parseNumber(approvedHoursRaw);
+
+            const empID = robustGetVal(row, EMP_ID_TERMS);
+            const empName = robustGetVal(row, EMP_NAME_TERMS);
+            
+            // Only include rows where (EmpID/Name is present) AND (Pending > 0)
+            if (empID && empName && pendingHours > 0) {
+              const dateRaw = robustGetVal(row, DATE_TERMS);
+              const reportDate = formatWorkdayDate(dateRaw); // *** Use robust date formatter ***
+              const dayType = robustGetVal(row, DAY_TYPE_TERMS);
+              const manager = robustGetVal(row, MANAGER_TERMS);
+              
+              overtimeApprovalData.push([
+                empID || 'N/A',
+                empName || 'N/A',
+                reportDate || 'N/A',
+                dayType || 'N/A',
+                "Not Yet Approved", 
+                manager || 'N/A',
+              ]);
+            }
+            // Ignore fully approved data (Approved > 0 AND Pending = 0)
+            else if (approvedHours > 0 && pendingHours === 0) {
+              return;
+            }
+          });
+          
+          if (overtimeApprovalData.length > 0) {
+            overtimeDiv.innerHTML = createTable(
+              "Overtime Approval Status Report (OT Applied but not Approved)",
+              ["Employee ID", "Employee Name", "Date", "Day Type", "Status", "Worker's Manager"],
+              overtimeApprovalData
+            );
+          } else {
+            overtimeDiv.innerHTML = '<div class="success-message">Overtime Report file processed. No **Pending Approval** records found that require action.</div>';
+          }
+        } else if (overtimeReport && overtimeReport.jsonData.length === 0) {
+          overtimeDiv.innerHTML = '<div class="no-discrepancy-message">Overtime Report file processed, but no data rows were found in the sheet.</div>';
+        } else if (!overtimeReport && files.length > 1) {
+          overtimeDiv.innerHTML = '<div class="no-discrepancy-message">No valid Overtime Report (missing "pending", "approved", and "employee" headers) found in the uploaded files.</div>';
+        }
+        // --- END OVERTIME APPROVAL REPORT PROCESSING ---
+
+
+        // --- OVERTIME APPROVAL PIVOT CALCULATION ---
+        window._overtimeApprovalPivot = [];
+        if (overtimeApprovalData.length > 0) {
+            let overtimeApprovalMgrCount = {};
+            overtimeApprovalData.forEach(row => {
+                // Manager is at index 5 of the row array
+                const manager = row[5]; 
+                const mgrKey = manager || "No Manager Listed";
+                overtimeApprovalMgrCount[mgrKey] = (overtimeApprovalMgrCount[mgrKey] || 0) + 1;
+            });
+
+            let overtimeApprovalPivot = Object.entries(overtimeApprovalMgrCount).map(([mgr, cnt]) => [mgr, cnt]);
+            overtimeApprovalPivot.push(["Grand Total", overtimeApprovalData.length]);
+            window._overtimeApprovalPivot = overtimeApprovalPivot;
+        }
+        // --- END OVERTIME APPROVAL PIVOT CALCULATION ---
+
+
+        // --- UNMATCHED REPORT PROCESSING (HARDENED) ---
+        let unmatchedRows = [];
+        let unmatchedPivot = [];
+        window._unmatchedPivot = [];
+        if (unmatchedReport && unmatchedReport.jsonData.length > 0) {
+          const data = unmatchedReport.jsonData;
+          
+          // HARDENED Search terms for Unmatched Report columns
+          const EMP_ID_TERMS = ['employee id', 'empid', 'id'];
+          const EMP_NAME_TERMS = ['worker', 'employee name', 'full name']; // Worker is the primary name for Unmatched
+          const EVENT_TYPE_TERMS = ['clock event type', 'event type'];
+          const DAY_OF_WEEK_TERMS = ['day of the week', 'day'];
+          const DATE_TIME_TERMS = ['date and time', 'time and date', 'datetime'];
+          const MANAGER_TERMS = ['manager for position', 'manager', 'workers manager'];
+
+
+          let unmatchedMgrCount = {};
+          const unmatchedRowsOut = [];
+
+          data.forEach((r) => {
+            const dateTimeRaw = robustGetVal(r, DATE_TIME_TERMS);
+            let managerName = robustGetVal(r, MANAGER_TERMS);
+            
+            let datePart = "N/A", timePart = "N/A";
+            
+            if (dateTimeRaw) {
+              let dateObj = null;
+              
+              if (typeof dateTimeRaw === "number") {
+                  // If it's an Excel serial number for DateTime, convert it
+                  dateObj = new Date((dateTimeRaw - 25569) * 86400 * 1000);
+              } else if (typeof dateTimeRaw === "string") {
+                  // Try to parse the string directly. This handles many formats,
+                  // including the user's example: "10/23/2025 03:04:00.000 pm GMT+05:30..."
+                  // Let's clean it slightly first
+                  const cleanString = dateTimeRaw.replace(/\s*\([^)]*\)/g, ''); // Removes "(Kolkata)" etc.
+                  dateObj = new Date(cleanString);
+              } else if (dateTimeRaw instanceof Date) {
+                  dateObj = dateTimeRaw;
+              }
+              
+              if (dateObj && !isNaN(dateObj.getTime())) {
+                  // Valid Date object was created
+                  datePart = formatWorkdayDate(dateObj); // Use robust formatter
+                  
+                  // *** THIS IS THE FORMAT THE USER WANTS ***
+                  timePart = dateObj.toLocaleTimeString("en-US", { 
+                      hour: 'numeric', // 'numeric' = 3 (not 03)
+                      minute: '2-digit', // '2-digit' = 04
+                      hour12: true       // 'true' = PM
+                  }); // Result: "3:04 PM"
+              
+              // =================================================================
+              // === MODIFIED CODE BLOCK START (FOR HH:MM AM/PM TIME FORMAT) ===
+              // =================================================================
+              } else if (typeof dateTimeRaw === 'string') { 
+                  // Fallback for weird strings that Date() constructor failed to parse
+                  const parts = dateTimeRaw.split(" ");
+                  datePart = formatWorkdayDate(parts[0]); // Format the date part if possible
+                  
+                  if (parts.length > 1) {
+                      const timeString = parts.slice(1).join(" "); // "03:04:00.000 pm GMT+05:30..."
+                      
+                      // Extract HH:MM and AM/PM
+                      // Regex: Find (HH:MM) followed by :SS.sss, whitespace, and then (am|pm)
+                      const timeMatch = timeString.match(/(\d{1,2}:\d{2}):\d{2}(?:\.\d+)?\s*(am|pm)/i);
+                      
+                      if (timeMatch && timeMatch[1] && timeMatch[2]) {
+                          // timeMatch[1] is "03:04"
+                          // timeMatch[2] is "pm"
+                          let hourMinute = timeMatch[1]; // "03:04"
+                          let ampm = timeMatch[2].toUpperCase(); // "PM"
+                          
+                          // Check if hour has leading zero and remove it (e.g., "03:04" -> "3:04")
+                          if (hourMinute.startsWith('0')) {
+                              hourMinute = hourMinute.substring(1);
+                          }
+                          
+                          timePart = `${hourMinute} ${ampm}`; // "3:04 PM"
+                      } else {
+                          // Regex failed, just show the first few parts as a last resort
+                          timePart = parts.slice(1, 3).join(" "); // e.g., "03:04:00.000 pm"
+                      }
+                  } else {
+                      timePart = "N/A";
+                  }
+              // =================================================================
+              // === MODIFIED CODE BLOCK END ===
+              // =================================================================
+              
+              } else {
+                  // Fallback for other invalid types
+                  datePart = dateTimeRaw ? dateTimeRaw.toString() : "N/A";
+                  timePart = "N/A";
+              }
+            }
+
+
+            let mgrKey = managerName;
+            if (
+              !managerName ||
+              managerName.toString().trim().toUpperCase() === "NA" ||
+              managerName.toString().trim() === ""
+            ) {
+              mgrKey = "No Manager Listed";
+            }
+
+            unmatchedRowsOut.push([
+              robustGetVal(r, EMP_ID_TERMS) || '',
+              robustGetVal(r, EMP_NAME_TERMS) || '',
+              robustGetVal(r, EVENT_TYPE_TERMS) || '',
+              robustGetVal(r, DAY_OF_WEEK_TERMS) || '',
+              datePart,
+              timePart,
+              managerName || '',
+              "Action required",
+            ]);
+            unmatchedMgrCount[mgrKey] = (unmatchedMgrCount[mgrKey] || 0) + 1;
+          });
+
+          unmatchedPivot = Object.entries(unmatchedMgrCount).map(([mgr, cnt]) => [mgr, cnt]);
+          if (unmatchedPivot.length > 0) unmatchedPivot.push(["Grand Total", unmatchedRowsOut.length]);
+          window._unmatchedPivot = unmatchedPivot;
+
+          unmatchedDiv.innerHTML = createTable(
+            "Unmatched Time Clock Events Report",
+            ["Employee ID", "Employee Name", "Clock Event Type", "Day of the Week", "Date", "Time", "Manager", "Status"],
+            unmatchedRowsOut
+          );
+        } else if (unmatchedReport && unmatchedReport.jsonData.length === 0) {
+            unmatchedDiv.innerHTML = '<div class="no-discrepancy-message">Unmatched Report file processed, but no data rows were found in the sheet.</div>';
+        } else if (!unmatchedReport && files.length > 1) {
+            unmatchedDiv.innerHTML = '<div class="no-discrepancy-message">No valid Unmatched Report (missing "clock event type" and "worker" headers) found in the uploaded files.</div>';
+        }
+        // --- END UNMATCHED REPORT PROCESSING ---
+
+
+        // --- Manager Overview Report Generation (Updated to include Overtime Approval Pivot) ---
+        window._managerOverviewPivotData = {
+          timesheetPivot: window._timesheetPivot || [],
+          absencePivot: window._absencePivot || [],
+          regShiftPivot: window._regPivot || [],
+          unmatchedPivot: window._unmatchedPivot || [],
+          holidayRegPivot: holidayRegPivot,
+          holidayDayOffPivot: holidayDayOffPivot,
+          // NEW: Overtime Approval Pivot
+          overtimeApprovalPivot: window._overtimeApprovalPivot || []
+        };
+
+        let pivotHtml = "";
+
+        function addPivot(title, headers, rows) {
+          if (rows.length > 0 && !(rows.length === 1 && rows[0][0] === "Grand Total")) {
+            pivotHtml += createTable(title, headers, rows);
+          }
+        }
+
+        addPivot(
+          "Timesheet Hours Discrepancy Summary (Hours < 9 or > 18)",
+          ["Workday Manager", "Discrepancy Count"],
+          window._managerOverviewPivotData.timesheetPivot
+        );
+
+        addPivot(
+          "Unapproved Absence Summary",
+          ["Workday Manager", "Unapproved Absence Count"],
+          window._managerOverviewPivotData.absencePivot
+        );
+
+        addPivot(
+          "Unmatched Clock Events Summary",
+          ["Workday Manager", "Unmatched Event Count"],
+          window._managerOverviewPivotData.unmatchedPivot
+        );
+        
+        // ADDED: Overtime Approval Status Summary
+        addPivot(
+          "Overtime Approval Status Summary (Pending)",
+          ["Workday Manager", "Pending Record Count"],
+          window._managerOverviewPivotData.overtimeApprovalPivot
+        );
+
+        addPivot(
+          "Holiday Report: Regular Shift on a Holiday",
+          ["Workday Manager", "Record Count"],
+          window._managerOverviewPivotData.holidayRegPivot
+        );
+
+        addPivot(
+          "Holiday Report: Day Off Shift on a Non-Holiday (Review)",
+          ["Workday Manager", "Record Count"],
+          window._managerOverviewPivotData.holidayDayOffPivot
+        );
+
+
+        if (pivotHtml === "") {
+          pivotDiv.innerHTML = '<div class="success-message">No discrepancies or unapproved events found across all reports. Manager Overview will be empty.</div>';
+        } else {
+          pivotDiv.innerHTML = pivotHtml;
+        }
+
+
+        document.getElementById("workdayReportStatus").innerText = "";
+        workdayDownloadBtn.disabled = false;
+      }
+
+      // Download all 5 workday report tables in single Excel with sheets (unchanged)
+      function downloadAllWorkdayReports() {
+        const wb = XLSX.utils.book_new();
+
+        function getTableFromDiv(divId) {
+          const div = document.getElementById(divId);
+          if (divId === "holidayReport") {
+            const tables = document.getElementById("holidayReportTables").querySelectorAll('table');
+            return tables.length > 0 ? Array.from(tables) : null;
+          }
+          return div ? div.querySelector("table") : null;
+        }
+
+        [
+          { divId: "timesheet", sheetName: "Timesheet Summary" },
+          { divId: "absence", sheetName: "Absence Summary" },
+          { divId: "overtimeApproval", sheetName: "Overtime Approval Status" }, 
+          { divId: "regular", sheetName: "Regular Shift Summary" },
+          { divId: "unmatched", sheetName: "Unmatched Report" },
+          { divId: "holidayReport", sheetName: "Holiday Shift Report" }, 
+        ].forEach(({ divId, sheetName }) => {
+          const tableOrTables = getTableFromDiv(divId);
+
+          if (divId === "holidayReport" && Array.isArray(tableOrTables)) {
+            let holidayData = [
+              ...window._holidayRegDataRows || [],
+              ...window._holidayDayOffDataRows || []
+            ];
+
+            if (holidayData.length > 0) {
+              // Extracting data rows and stripping HTML (e.g., span classes)
+              const cleanedHolidayData = holidayData.map(row => 
+                row.map(cell => {
+                  if (typeof cell === 'string') {
+                    // Simple regex to strip spans/HTML tags
+                    return cell.replace(/<[^>]*>?/gm, '');
+                  }
+                  return cell;
+                })
+              );
+
+              // UPDATED: Re-order columns for download: [0:ID, 1:Name, 2:Date, 3:Hours, 4:DayType, 5:Status, 6:Manager, 7:Action]
+              const downloadAOA = cleanedHolidayData.map(row => [
+                  row[0], // Employee ID
+                  row[1], // Employee Name
+                  row[2], // Date
+                  row[3], // Hours
+                  row[4], // Day Type 
+                  row[5], // Status 
+                  row[6], // Manager 
+                  row[7]  // Action Required
+              ]);
+              
+              // Define the final headers for the downloaded sheet
+              const headers = ["Employee ID", "Employee Name", "Date", "Hours", "Day Type", "Status", "Manager", "Action Required"];
+              
+              downloadAOA.unshift(headers);
+              const ws = XLSX.utils.aoa_to_sheet(downloadAOA);
+              XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            }
+
+          } else if (tableOrTables) {
+            const ws = XLSX.utils.table_to_sheet(tableOrTables);
+            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+          }
+        });
+
+        // Add the Manager Overview Pivot sheet manually from stored data
+        if (window._managerOverviewPivotData && Object.values(window._managerOverviewPivotData).some(arr => arr.length > 0)) {
+            const pivotData = [];
+            
+            function addPivotData(title, headers, rows) {
+                if (rows.length > 0 && !(rows.length === 1 && rows[0][0] === "Grand Total")) {
+                    pivotData.push([title]); 
+                    pivotData.push(headers); 
+                    rows.forEach(row => pivotData.push(row));
+                    pivotData.push([]); 
+                }
+            }
+
+            addPivotData("Timesheet Hours Discrepancy Summary (Hours < 9 or > 13)", ["Workday Manager", "Discrepancy Count"], window._managerOverviewPivotData.timesheetPivot);
+            addPivotData("Unapproved Absence Summary", ["Workday Manager", "Unapproved Absence Count"], window._managerOverviewPivotData.absencePivot);
+            addPivotData("Unmatched Clock Events Summary", ["Workday Manager", "Unmatched Event Count"], window._managerOverviewPivotData.unmatchedPivot);
+            // ADDED: Overtime Approval Status Summary
+            addPivotData("Overtime Approval Status Summary (Pending)", ["Workday Manager", "Pending Record Count"], window._managerOverviewPivotData.overtimeApprovalPivot);
+
+            addPivotData("Holiday Report: Regular Shift on a Holiday", ["Workday Manager", "Record Count"], window._managerOverviewPivotData.holidayRegPivot);
+            addPivotData("Holiday Report: Day Off Shift on a Non-Holiday (Review)", ["Workday Manager", "Record Count"], window._managerOverviewPivotData.holidayDayOffPivot);
+
+            if (pivotData.length > 0) {
+                const ws = XLSX.utils.aoa_to_sheet(pivotData);
+                XLSX.utils.book_append_sheet(wb, ws, "Manager Overview");
+            }
+        }
+
+        XLSX.writeFile(wb, "Workday_ChronoMetrics_Report.xlsx");
+      }
+
+
+      // --- HOLIDAY REPORT SPECIFIC LOGIC (HARDENED) ---
+      function processHolidayData(jsonData) {
+        regShiftData = [];
+        dayOffShiftData = [];
+        holidayRegPivot = [];
+        holidayDayOffPivot = [];
+        let regMgrCount = {};
+        let dayOffMgrCount = {};
+
+        // Hardcoded list of official holidays for the period
+        const holidays = [
+          '01/01/2024', '01/15/2024', '02/19/2024', '03/29/2024', '05/27/2024',
+          '06/19/2024', '07/04/2024', '09/02/2024', '10/14/2024', '11/11/2024',
+          '11/28/2024', '11/29/2024', '12/25/2024',
+          // 2025: Actual confirmed dates (DD/MM/YYYY format)
+          '09/05/2025', '02/10/2025', '20/10/2025', '22/10/2025', 
+          '01/11/2025', '25/12/2025'
+        ].map(d => {
+            const parts = d.split('/');
+            // Converts DD/MM/YYYY to YYYY-MM-DD for consistent comparison
+            if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            return d;
+        });
+
+        const isHoliday = (dateString) => {
+          if (!dateString) return false;
+          // Robustly parse the date string (in DD/MM/YYYY format from formatWorkdayDate)
+          const parts = dateString.split('/');
+          if (parts.length !== 3) return false;
+          
+          // Converts DD/MM/YYYY to YYYY-MM-DD
+          const normalizedDate = `${parts[2]}-${parts[1]}-${parts[0]}`; 
+          return holidays.includes(normalizedDate);
+        };
+        
+        // Helper for weekend check
+        function isWeekend(dateString) {
+          if (!dateString) return false;
+          const parts = dateString.split('/');
+          if (parts.length !== 3) return false;
+          // Note: Month is 0-indexed in Date constructor
+          const date = new Date(parts[2], parts[1] - 1, parts[0]); 
+          if (isNaN(date.getTime())) return false;
+          return date.getDay() === 0 || date.getDay() === 6; // 0=Sunday, 6=Saturday
+        }
+
+        // Helper to format hours: removes .00 but keeps other decimals
+        function formatHours(hours) {
+            const num = parseFloat(hours);
+            if (isNaN(num)) return hours;
+            // Check if the number is an integer
+            if (num % 1 === 0) {
+                return num.toFixed(0);
+            }
+            // If it has decimals, format it to two decimal places
+            return num.toFixed(2);
+        }
+
+
+        jsonData.forEach(row => {
+          // *** Use robustGetVal for all fields ***
+          const dateRaw = robustGetVal(row, ['reported date', 'date', 'time off date']);
+          const typeValRaw = robustGetVal(row, ['time type', 'time type name']);
+          
+          // **FIX IMPLEMENTED HERE:** Normalize typeVal robustly
+          if (!dateRaw || !typeValRaw) return; // Must have date and type
+
+          const typeVal = String(typeValRaw).toLowerCase().trim();
+          
+          const isRegShift = typeVal.includes('regular shift');
+          const isDayOff = typeVal.includes('day off');
+          
+          if (!isRegShift && !isDayOff) return; // Only process these two types
+
+          const reportDate = formatWorkdayDate(dateRaw); // *** Use robust date formatter ***
+          
+          // --- NEW/CORRECTED: Extract total hours using robustGetVal ---
+          const totalHoursRaw = robustGetVal(row, ['final total hours', 'total hours', 'hours', 'total final hours']);
+          const totalHours = parseFloat(totalHoursRaw) || 0; 
+          if (totalHours === 0) return; // Only process records with reported hours
+
+
+          const manager = robustGetVal(row, ["worker's manager", 'manager for position', 'manager']);
+          const empID = robustGetVal(row, ['employee id', 'empid', 'id']);
+          const empName = robustGetVal(row, ['full name', 'worker', 'employee name']);
+          const status = robustGetVal(row, ['status']);
+
+          // --- LOGIC 1: Regular Shift on an Official Holiday ---
+          if (isRegShift && isHoliday(reportDate)) {
+            regShiftData.push([
+              empID || 'N/A',
+              empName || 'N/A',
+              reportDate || 'N/A',
+              formatHours(totalHours), // << FORMATTED HOURS HERE (NEW INDEX 3)
+              typeVal || 'N/A', // << MOVED TO INDEX 4
+              status || 'N/A', // << MOVED TO INDEX 5
+              manager || 'N/A', // << MOVED TO INDEX 6
+              "Immediate Action Required" // << MOVED TO INDEX 7
+            ]);
+            const mgrKey = manager || "No Manager Listed";
+            regMgrCount[mgrKey] = (regMgrCount[mgrKey] || 0) + 1;
+          }
+
+          // --- LOGIC 2: Day Off Shift on a Non-Official Holiday (Potential Issue) ---
+          if (isDayOff && !isHoliday(reportDate) && !isWeekend(reportDate)) {
+            dayOffShiftData.push([
+              empID || 'N/A',
+              empName || 'N/A',
+              reportDate || 'N/A',
+              formatHours(totalHours), // << FORMATTED HOURS HERE (NEW INDEX 3)
+              typeVal || 'N/A', // << MOVED TO INDEX 4
+              status || 'N/A', // << MOVED TO INDEX 5
+              manager || 'N/A', // << MOVED TO INDEX 6
+              "Review Recommended" // << MOVED TO INDEX 7
+            ]);
+            const mgrKey = manager || "No Manager Listed";
+            dayOffMgrCount[mgrKey] = (dayOffMgrCount[mgrKey] || 0) + 1;
+          }
+        });
+
+        // Build Pivot Data
+        holidayRegPivot = Object.entries(regMgrCount).map(([mgr, cnt]) => [mgr, cnt]);
+        holidayDayOffPivot = Object.entries(dayOffMgrCount).map(([mgr, cnt]) => [mgr, cnt]);
+
+        if (holidayRegPivot.length > 0) holidayRegPivot.push(["Grand Total", regShiftData.length]);
+        if (holidayDayOffPivot.length > 0) holidayDayOffPivot.push(["Grand Total", dayOffShiftData.length]);
+
+        window._holidayRegDataRows = regShiftData; 
+        window._holidayDayOffDataRows = dayOffShiftData; 
+
+        // Render HTML tables
+        const tablesDiv = document.getElementById("holidayReportTables");
+        tablesDiv.innerHTML = "";
+        
+        // UPDATED Headers position to reflect the change: Date | Hours | Day Type | Status
+        const HOLIDAY_REPORT_HEADERS = ["Employee ID", "Employee Name", "Date", "Hours", "Day Type", "Status", "Manager", "Action Required"]; 
+
+
+        // Regular Shift on a Holiday table
+        if (regShiftData.length > 0) {
+          tablesDiv.innerHTML += createTable(
+            "Logged in as Regular Shift on a Holiday",
+            HOLIDAY_REPORT_HEADERS, // Use new headers
+            regShiftData.map(row => {
+              const newRow = [...row];
+              newRow[newRow.length - 1] = `<span class="action-required">${newRow[newRow.length - 1]}</span>`;
+              return newRow;
+            })
+          );
+        }
+
+        // Day Off Shift on a Non-Holiday table (The newly requested table)
+        if (dayOffShiftData.length > 0) {
+          tablesDiv.innerHTML += createTable(
+            "Logged in as Day Off Shift on a Non-Holiday - (OverTime Possible)",
+            HOLIDAY_REPORT_HEADERS, // Use new headers
+            dayOffShiftData.map(row => {
+              const newRow = [...row];
+              newRow[newRow.length - 1] = `<span class="medium-orange">${newRow[newRow.length - 1]}</span>`;
+              return newRow;
+            })
+          );
+        }
+
+        if (regShiftData.length === 0 && dayOffShiftData.length === 0) {
+          tablesDiv.innerHTML = '<div class="success-message">No potential Holiday Shift discrepancies found.</div>';
+        }
+      }
+
+
+      // --- BANGALORE REPORT SPECIFIC LOGIC (FIXED FOR ROBUSTNESS) ---
+      const bangaloreUpload = document.getElementById("bangaloreUpload");
+      const bangaloreGenerateBtn = document.getElementById("bangaloreGenerateBtn");
+      const bangaloreResetBtn = document.getElementById("bangaloreResetBtn");
+      const bangaloreDownloadBtn = document.getElementById("bangaloreDownloadBtn");
+
+
+      // --- BANGALORE EVENT LISTENERS ---
+      bangaloreUpload.addEventListener("change", function () {
+        bangaloreGenerateBtn.disabled = this.files.length === 0;
+        bangaloreResetBtn.disabled = this.files.length === 0;
+        bangaloreDownloadBtn.disabled = true;
+      });
+
+      bangaloreGenerateBtn.addEventListener("click", processBangaloreFile);
+
+      bangaloreResetBtn.addEventListener("click", function () {
+        bangaloreUpload.value = "";
+        bangaloreGenerateBtn.disabled = true;
+        bangaloreResetBtn.disabled = true;
+        bangaloreDownloadBtn.disabled = true;
+        
+        // **FIX 2: Hide the report container on reset**
+        document.querySelector(".bangalore-tab-container").style.display = "none";
+
+        document.getElementById("bangaloreSummaryTable").querySelector("tbody").innerHTML = "";
+        document.getElementById("bangaloreDetailsTable").querySelector("tbody").innerHTML = "";
+        window._bangaloreReportData = null; // Clear global data
+      });
+
+      bangaloreDownloadBtn.addEventListener("click", downloadBangaloreReport);
+
+      // --- BANGALORE TAB SWITCHING ---
+      const bangaloreSummaryTab = document.getElementById("bangaloreSummaryTab");
+      const bangaloreDetailsTab = document.getElementById("bangaloreDetailsTab");
+      document.getElementById("bangalore-tab-summary").onclick = function () {
+        document.getElementById("bangalore-tab-details").classList.remove("active");
+        this.classList.add("active");
+        bangaloreDetailsTab.classList.remove("active");
+        bangaloreSummaryTab.classList.add("active");
+      };
+      document.getElementById("bangalore-tab-details").onclick = function () {
+        document.getElementById("bangalore-tab-summary").classList.remove("active");
+        this.classList.add("active");
+        bangaloreSummaryTab.classList.remove("active");
+        bangaloreDetailsTab.classList.add("active");
+      };
+
+
+// --- UTILITY FUNCTION 1: DATE CONVERSION ---
+function formatWorkdayDate(dateValue) {
+    if (typeof dateValue === 'number' && dateValue > 1) {
+        // Convert Excel date number (days since 1900) to JavaScript Date object
+        const utc_days = Math.floor(dateValue - 25569);
+        const utc_value = utc_days * 86400;
+        const date = new Date(utc_value * 1000);
+        return date.toLocaleDateString('en-IN'); // Format as DD/MM/YYYY
+    }
+    return dateValue; // Return as-is if not a number
+}
+
+// --- UTILITY FUNCTION 2: DECIMAL FORMATTING ---
+function formatHours(value) {
+    const num = parseFloat(value);
+    // Check if the number is an integer (i.e., has a fractional part of 0)
+    if (num % 1 === 0) {
+        return num.toString();
+    }
+    // Otherwise, keep it fixed to two decimal places
+    return num.toFixed(2);
+}
+
+
+// --- BANGALORE REPORT PROCESSING FUNCTION (FINAL IMPLEMENTATION WITH STRICT UNIT OF TIME LOGIC) ---
+async function processBangaloreFile() {
+    const file = bangaloreUpload.files[0];
+    if (!file) {
+        alert("Please select a Bangalore Overtime Excel file.");
+        return;
+    }
+
+    // Disable button while processing
+    bangaloreGenerateBtn.disabled = true;
+
+    try {
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+        // raw: true ensures numbers/dates are not processed by default
+        const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true }); 
+        
+        if (!jsonData || jsonData.length === 0) {
+            alert("The selected file is empty.");
+            bangaloreGenerateBtn.disabled = false;
+            return;
+        }
+
+        // Normalize headers for case-insensitive matching
+        const headers = jsonData[0].map(h => h ? h.toLowerCase().trim() : '');
+        
+        // CRITICAL FIX: Filter out completely empty rows
+        const rawRows = jsonData.slice(1);
+        const rows = rawRows.filter(r => r.some(cell => cell !== null && cell !== undefined && cell !== ""));
+
+        if (rows.length === 0) {
+            alert("The file is empty or only contains headers.");
+            bangaloreGenerateBtn.disabled = false;
+            return;
+        }
+
+        // Column indices (PINPOINTED KEYWORD MATCHING)
+        const colMapB = {
+            id: headers.findIndex(h => h.includes('employee id')), 
+            name: headers.findIndex(h => h.includes('employee name')),
+            org: headers.findIndex(h => h.includes('supervisory organization')),
+            type: headers.findIndex(h => h.includes('type') && !h.includes('unit')), 
+            hours: headers.findIndex(h => h === 'approved'), // Approved column used for quantity
+            date: headers.findIndex(h => h.includes('time off date')),
+            pending: headers.findIndex(h => h === 'pending'), // Pending column
+            unit: headers.findIndex(h => h.includes('unit of time')) // Unit of Time column
+        };
+        
+        // REQUIRED COLUMN VALIDATION CHECK
+        if (colMapB.hours === -1 || colMapB.id === -1 || colMapB.unit === -1) {
+            alert("Fatal Error: Could not find required columns ('Approved', 'Employee ID', or 'Unit of Time'). Please check your file headers.");
+            bangaloreGenerateBtn.disabled = false;
+            return;
+        }
+
+        const reportData = [];
+        const summaryData = {};
+        let totalHoursAll = 0;
+
+        rows.forEach(r => {
+            const empID = r[colMapB.id];
+            const empName = r[colMapB.name];
+            const org = r[colMapB.org];
+            const typeRaw = r[colMapB.type] || '';
+            const type = String(typeRaw).trim();
+            let dateVal = r[colMapB.date];
+            
+            // --- DATA INTEGRITY CHECK (Skip if Employee ID or Name is blank) ---
+            if (!empID || !empName) return; 
+
+            // Get raw quantities from Approved and Pending
+            const approvedQuantity = parseFloat(r[colMapB.hours]) || 0;
+            const pendingQuantity = parseFloat(r[colMapB.pending]) || 0;
+            
+            const totalQuantity = approvedQuantity + pendingQuantity; 
+
+            // Get Unit of Time and normalize it
+            const unitOfTimeRaw = r[colMapB.unit] || '';
+            const unitOfTime = String(unitOfTimeRaw).toLowerCase().trim();
+
+            let totalHours = 0;
+            
+            // --- NEW CALCULATIONS LOGIC BASED ON UNIT OF TIME ---
+            if (unitOfTime === 'days') {
+                // RULE: If Unit of time is 'Days' AND total quantity is exactly 1, multiply by 9.
+                if (totalQuantity === 1) {
+                    totalHours = totalQuantity * 9;
+                } else {
+                    // If 'Days' but quantity is not 1, ignore the row.
+                    return; 
+                }
+            } else if (unitOfTime === 'hours') {
+                // Rule: If Unit of time is 'Hours', take the quantity as is.
+                totalHours = totalQuantity;
+            } else {
+                // Ignore the row if unit of time is neither 'days' nor 'hours'
+                return;
+            }
+
+            // Filter out rows with 0 or invalid calculated hours.
+            if (isNaN(totalHours) || totalHours <= 0) return;
+
+            // *** Use formatWorkdayDate for robust date conversion ***
+            dateVal = formatWorkdayDate(dateVal);
+
+            const key = `${empID}|${empName}|${org}`;
+
+            // Collect detail data
+            reportData.push({
+                id: empID,
+                name: empName,
+                org: org,
+                type: type,
+                hours: totalHours, 
+                date: dateVal,
+            });
+
+            // Collect summary data
+            if (!summaryData[key]) {
+                summaryData[key] = {
+                    id: empID,
+                    name: empName,
+                    org: org,
+                    totalHours: 0,
+                };
+            }
+            summaryData[key].totalHours += totalHours;
+            totalHoursAll += totalHours;
+        });
+
+        // Sort summary data by total hours (descending)
+        const summaryRows = Object.values(summaryData).sort((a, b) => b.totalHours - a.totalHours);
+
+        // Render Summary Table
+        const summaryTbody = document.getElementById("bangaloreSummaryTable").querySelector("tbody");
+        summaryTbody.innerHTML = summaryRows
+            .map(
+                (r) => {
+                    // --- THRESHOLDS MATCHING VBA LOGIC ---
+                    const hoursClass = r.totalHours > 50
+                        ? "hours-high" // > 50
+                        : r.totalHours > 40
+                        ? "hours-medium-orange" // 41-50
+                        : r.totalHours > 30
+                        ? "hours-medium" // 31-40
+                        : "hours-low"; // 0-30
+                        
+                    // Apply the class ONLY to the Total Hours <td>
+                    return `<tr>
+                        <td>${r.id}</td>
+                        <td>${r.name}</td>
+                        <td>${r.org}</td>
+                        <td class="${hoursClass}">${formatHours(r.totalHours)}</td>
+                    </tr>`;
+                }
+            )
+            .join("");
+        // Add Grand Total Row - Apply decimal formatting here too
+        summaryTbody.innerHTML += `<tr class="grand-total-row"><td>Grand Total</td><td></td><td></td><td>${formatHours(totalHoursAll)}</td></tr>`;
+
+        // Render Details Table
+        const detailsTbody = document.getElementById("bangaloreDetailsTable").querySelector("tbody");
+        detailsTbody.innerHTML = reportData.map(
+                (r) =>
+                    // Apply decimal formatting to HTML output
+                    `<tr><td>${r.id}</td><td>${r.name}</td><td>${r.org}</td><td>${r.type}</td><td>${formatHours(r.hours)}</td><td>${r.date}</td></tr>`
+            )
+            .join("");
+
+        window._bangaloreReportData = { summary: summaryRows, details: reportData, total: totalHoursAll };
+
+        // Make the report container visible after rendering
+        document.querySelector(".bangalore-tab-container").style.display = "block";
+        
+        bangaloreGenerateBtn.disabled = false; // Re-enable generate button
+        bangaloreDownloadBtn.disabled = false;
+        
+    } catch (e) {
+        alert("An unexpected error occurred during file processing. Ensure your file is not corrupted or open.");
+        console.error(e);
+        bangaloreGenerateBtn.disabled = false;
+    }
+}
+
+      function downloadBangaloreReport() {
+        if (!window._bangaloreReportData) return alert("No data to download.");
+        
+        const wb = XLSX.utils.book_new();
+        const data = window._bangaloreReportData;
+        
+        // 1. Summary Sheet
+        const summaryHeaders = ["Employee ID", "Employee Name", "Supervisory Organization", "Total Hours"];
+        const summaryRows = data.summary.map(r => [r.id, r.name, r.org, r.totalHours.toFixed(2)]);
+        summaryRows.push(["Grand Total", "", "", data.total.toFixed(2)]);
+        
+        const summaryAOA = [summaryHeaders, ...summaryRows]; // Create AOA
+        const wsSummary = XLSX.utils.aoa_to_sheet(summaryAOA);
+        XLSX.utils.book_append_sheet(wb, wsSummary, "Bangalore Summary");
+
+        // 2. Details Sheet
+        const detailHeaders = ["Employee ID", "Employee Name", "Supervisory Organization", "Type", "Total Hours", "Time Off Date"];
+        const detailRows = data.details.map(r => [r.id, r.name, r.org, r.type, r.hours.toFixed(2), r.date]);
+        
+        const detailAOA = [detailHeaders, ...detailRows];
+        const wsDetails = XLSX.utils.aoa_to_sheet(detailAOA);
+        XLSX.utils.book_append_sheet(wb, wsDetails, "Bangalore Details");
+
+        XLSX.writeFile(wb, "Bangalore_Overtime_Report.xlsx");
+      }
+
+
+      // --- NEW MODAL AND FOOTER LOGIC (Unchanged) ---
+      const contactFooter = document.getElementById("contactFooter");
+      const contactModal = document.getElementById("contactModal");
+      const closeBtn = document.querySelector("#contactModal .close-btn");
+      const hoverPopup = document.getElementById("hoverPopup");
+
+      function showModal() {
+        contactModal.classList.add("show");
+      }
+
+      function hideModal() {
+        contactModal.classList.remove("show");
+      }
+
+      // Add a placeholder footer element since the provided snippet was missing it.
+      // This is crucial for the modal/hover logic to work.
+      let footerEl = document.getElementById("contactFooter");
+      if (!footerEl) {
+          footerEl = document.createElement("footer");
+          footerEl.id = "contactFooter";
+          footerEl.innerHTML = 'Developed by Vikrant Raju Sale (Click for Contact Details)';
+          document.body.appendChild(footerEl);
+      }
+
+
+      footerEl.addEventListener('mouseover', function () {
+        hoverPopup.style.display = 'block';
+      });
+
+      footerEl.addEventListener('mouseout', function () {
+        hoverPopup.style.display = 'none';
+      });
+
+      footerEl.addEventListener('click', showModal);
+
+      closeBtn.addEventListener('click', hideModal);
+
+      window.addEventListener('click', function (event) {
+        if (event.target === contactModal) {
+          hideModal();
+        }
+      });
+
+    });
+
+    // Disable right-click context menu (from original file)
+    document.addEventListener('contextmenu', function (e) {
+      e.preventDefault();
+    });
+  </script>
+
+  <footer id="contactFooter">
+    Developed by Vikrant Raju Sale (Click for Contact Details)
+  </footer>
+</body>
+
+</html>
